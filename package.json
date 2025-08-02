@@ -1,0 +1,50 @@
+{
+	"name": "@agilearn/router",
+	"version": "1.0.0",
+	"description": "A lightweight router for Cloudflare Workers with TypeScript support",
+	"type": "module",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"dist",
+		"src",
+		"README.md"
+	],
+	"scripts": {
+		"build": "pnpm run build:esm && pnpm run build:types",
+		"build:esm": "esbuild src/index.ts --bundle --format=esm --minify --outfile=dist/index.mjs --platform=neutral",
+		"build:types": "tsc --emitDeclarationOnly --outDir dist",
+		"clean": "rm -rf dist",
+		"dev": "pnpm run build --watch",
+		"prepublishOnly": "pnpm run clean && pnpm run build",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"types": "wrangler types"
+	},
+	"keywords": [
+		"cloudflare",
+		"workers",
+		"router",
+		"typescript",
+		"edge",
+		"serverless"
+	],
+	"author": "Matthew Gibbons",
+	"license": "ISC",
+	"packageManager": "pnpm@10.12.1",
+	"devDependencies": {
+		"@types/node": "^24.1.0",
+		"@vitest/coverage-v8": "^3.2.4",
+		"esbuild": "^0.25.8",
+		"typescript": "^5.8.3",
+		"vitest": "^3.2.4",
+		"wrangler": "^4.26.1"
+	}
+}
