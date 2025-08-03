@@ -17,10 +17,10 @@ type RouteParams<T extends string> = Flatten<
 	T extends `${string}:${infer Param}+${infer Rest}`
 		? { [K in Param]: string } & RouteParams<Rest>
 		: T extends `${string}:${infer Param}/${infer Rest}`
-			? { [K in Param]: string } & RouteParams<`/${Rest}`>
-			: T extends `${string}:${infer Param}`
-				? { [K in Param]: string }
-				: object
+		? { [K in Param]: string } & RouteParams<`/${Rest}`>
+		: T extends `${string}:${infer Param}`
+		? { [K in Param]: string }
+		: object
 >;
 
 export interface RequestEvent<Route extends string = string, Props = unknown> {
@@ -38,7 +38,9 @@ type Router<Props = unknown> = Flatten<
 	{
 		fetch: ExportedHandlerFetchHandler<Cloudflare.Env>;
 	} & {
-		[K in 'all' | 'delete' | 'get' | 'options' | 'patch' | 'post' | 'put']: <Route extends string>(
+		[K in 'all' | 'delete' | 'get' | 'options' | 'patch' | 'post' | 'put']: <
+			Route extends string
+		>(
 			route: Route,
 			...handlers: RequestHandler<Route, Props>[]
 		) => Router<Props>;
@@ -47,12 +49,13 @@ type Router<Props = unknown> = Flatten<
 
 export const router = <Props = unknown>({
 	base = '',
-	onError = internalServerError
+	onError = internalServerError,
 }: {
 	base?: string;
 	onError?: (error: unknown, request: Request) => Response | Promise<Response>;
-} = {}): Router<Props> => {
-	const routes: { handlers: RequestHandler<string, Props>[]; re: RegExp }[] = [];
+} = {}) => {
+	const routes: { handlers: RequestHandler<string, Props>[]; re: RegExp }[] =
+		[];
 
 	return new Proxy(
 		{
@@ -72,11 +75,13 @@ export const router = <Props = unknown>({
 									params,
 									platform: { ctx, env },
 									request: req,
-									url
+									url,
 								});
 
 								if (res instanceof Response) {
-									return req.method === 'HEAD' && res.bodyUsed ? new Response(null, res) : res;
+									return req.method === 'HEAD' && res.bodyUsed
+										? new Response(null, res)
+										: res;
 								}
 							}
 						}
@@ -85,17 +90,26 @@ export const router = <Props = unknown>({
 				} catch (error) {
 					return onError(error, req);
 				}
-			}
+			},
 		} as Router<Props>,
 		{
 			get(target, p: keyof Router<Props>, receiver) {
 				return p in target
 					? target[p]
-					: <Route extends string>(route: Route, ...handlers: RequestHandler<Route, Props>[]) => {
+					: <Route extends string>(
+							route: Route,
+							...handlers: RequestHandler<Route, Props>[]
+					  ) => {
 							routes.push({
 								handlers,
 								re: new RegExp(
-									`^${p === 'all' ? '[A-Z]+' : p === 'get' ? '(?:GET|HEAD)' : p.toUpperCase()} ${
+									`^${
+										p === 'all'
+											? '[A-Z]+'
+											: p === 'get'
+											? '(?:GET|HEAD)'
+											: p.toUpperCase()
+									} ${
 										(base + route)
 											// Normalize consecutive slashes: //+ -> /
 											.replace(/\/+/g, '/')
@@ -110,11 +124,11 @@ export const router = <Props = unknown>({
 										// Handle optional trailing slash
 										'/?'
 									}$`
-								)
+								),
 							});
 							return receiver;
-						};
-			}
+					  };
+			},
 		}
-	);
+	) as Router<Props>;
 };
