@@ -1,192 +1,351 @@
-# @agilearn/router
+# Router
 
-A lightweight, TypeScript-first router for Cloudflare Workers with support for
-dynamic routes, middleware, and type-safe route parameters.
+A type-safe, lightweight router designed specifically for Cloudflare Workers with built-in JSON:API support. Inspired by [itty-router](https://github.com/kwhitley/itty-router) and [SvelteKit](https://github.com/sveltejs/kit).
 
 ## Features
 
-- 🚀 **Lightweight**: Minimal overhead, perfect for edge computing
-- 🔧 **TypeScript First**: Full type safety with route parameter inference
-- 🛣️ **Dynamic Routes**: Support for parameters (`:id`) and catch-all routes
-  (`:path+`)
-- 🔌 **Middleware Support**: Built-in CORS, error handling, and custom
-  middleware
-- ⚡ **Cloudflare Workers**: Optimized for Cloudflare Workers runtime
-- 📦 **Monorepo Ready**: Works seamlessly in monorepo setups
+- 🔥 **Zero dependencies** - Lightweight and fast
+- 🛡️ **Type-safe** - Full TypeScript support with route parameter inference
+- 🌐 **Cloudflare Workers optimized** - Built for the edge
+- 📡 **JSON:API compliant** - Follows JSON:API specification
+- 🚀 **Simple API** - Intuitive method chaining
+- 🔄 **Dynamic routes** - Support for parameters, wildcards, and catch-all routes
+- ⚡ **High performance** - Minimal overhead with efficient route matching
+- 🛠️ **Optional response helpers** - Built-in helpers for common responses and errors
 
 ## Installation
 
 ```bash
 npm install @agilearn/router
-# or
-pnpm add @agilearn/router
-# or
-yarn add @agilearn/router
 ```
 
 ## Quick Start
 
 ```typescript
-import { router, text } from "@agilearn/router";
+import { router, json, error, notFound, internalServerError } from '@agilearn/router';
 
-// Create a router
-const app = router<{ MY_SECRET: string }>();
+const app = router();
 
-// Add routes
-app
-  .get("/", () => text("Hello World!"))
-  .get("/users/:id", ({ params }) => text(`User ID: ${params.id}`))
-  .post("/users", ({ request }) => text("Creating user..."))
-  .all("/api/*", () => text("API endpoint"));
+// Simple route
+app.get('/hello', () => json({ message: 'Hello, World!' }));
 
-// Export for Cloudflare Workers
+// Route with parameters
+app.get('/users/:id', ({ params }) => {
+	return json({
+		data: {
+			type: 'users',
+			id: params.id,
+			attributes: { name: 'John Doe' },
+		},
+	});
+});
+
+// Handle not found
+app.get('/missing', () => notFound());
+
+// Handle errors
+app.post('/users', () => {
+	try {
+		// Some operation that might fail
+		throw new Error('Database error');
+	} catch (err) {
+		return internalServerError(err);
+	}
+});
+
 export default app;
 ```
 
-## Route Parameters
+## Response Helpers
 
-The router supports dynamic route parameters with full TypeScript inference:
+The router includes several built-in response helpers for common HTTP responses:
+
+### JSON Responses
 
 ```typescript
-// Simple parameter
-app.get("/users/:id", ({ params }) => {
-  // params.id is typed as string
-  return text(`User: ${params.id}`);
+import { json, created } from '@agilearn/router/response';
+
+// JSON response with data (200 OK)
+json({ message: 'Success' });
+
+// JSON with custom status and headers
+created(
+	{ data: user },
+	{
+		headers: { Location: '/users/123' },
+	}
+);
+```
+
+### Error Responses
+
+```typescript
+import { error } from '@agilearn/router';
+
+// Basic error (follows JSON:API error format)
+error(404, 'Not Found');
+
+// Error with description
+error(400, 'Bad Request', 'Invalid email format');
+
+// Error with Error object
+error(500, 'Internal Server Error', new Error('Database failed'));
+```
+
+### Common HTTP Responses
+
+```typescript
+import { notFound, internalServerError } from '@agilearn/router/response';
+
+// 404 Not Found
+app.get('/missing', () => notFound());
+
+// 500 Internal Server Error
+app.get('/error', () => internalServerError());
+
+// 500 with custom error
+app.get('/custom-error', () => internalServerError(new Error('Custom error')));
+```
+
+## API Reference
+
+### Router Creation
+
+```typescript
+const app = router<Options>({
+  base?: string;
+  onError?: (error: unknown, request: Request) => Response | Promise<Response>;
+});
+```
+
+**Options:**
+
+- `base` - Base path for all routes (optional). Must start with '/'.
+- `onError` - Custom error handler (optional, defaults to `internalServerError`)
+
+### HTTP Methods
+
+The router supports all standard HTTP methods:
+
+```typescript
+app.get(path, ...handlers);
+app.post(path, ...handlers);
+app.put(path, ...handlers);
+app.patch(path, ...handlers);
+app.delete(path, ...handlers);
+app.head(path, ...handlers);
+app.options(path, ...handlers);
+app.trace(path, ...handlers);
+```
+
+### Route Patterns
+
+#### Static Routes
+
+```typescript
+app.get('/users', handler);
+app.post('/api/v1/posts', handler);
+```
+
+#### Parameters
+
+```typescript
+// Single parameter
+app.get('/users/:id', ({ params }) => {
+	console.log(params.id); // Type-safe!
 });
 
 // Multiple parameters
-app.get("/users/:userId/posts/:postId", ({ params }) => {
-  // params.userId and params.postId are both typed as string
-  return text(`User: ${params.userId}, Post: ${params.postId}`);
-});
-
-// Catch-all parameter
-app.get("/files/:path+", ({ params }) => {
-  // params.path captures everything after /files/
-  return text(`File path: ${params.path}`);
+app.get('/users/:userId/posts/:postId', ({ params }) => {
+	console.log(params.userId, params.postId);
 });
 ```
 
-## Middleware & Utilities
-
-### Error Handling
+#### Catch-all Parameters
 
 ```typescript
-import { router, notFound, internalServerError } from "@agilearn/router";
-
-const app = router({
-  onError: (error, request) => {
-    console.error("Router error:", error);
-    return internalServerError("Something went wrong");
-  },
-});
-
-// Built-in error responses
-app.get("/not-found", () => notFound());
-app.get("/error", () => internalServerError());
-```
-
-### Custom Response Helpers
-
-```typescript
-import { text } from "@agilearn/router";
-
-// Simple text response
-return text("Hello World!");
-
-// Text with custom status and headers
-return text("Created!", {
-  status: 201,
-  headers: { "X-Custom": "value" },
+// Matches everything after /files/
+app.get('/files/:path+', ({ params }) => {
+	console.log(params.path); // Could be "docs/readme.txt"
 });
 ```
 
-## Request Context
-
-Each route handler receives a context object with:
+#### Wildcards
 
 ```typescript
-interface RequestEvent<Route, Env, Ctx> {
-  params: RouteParams<Route>; // Type-safe route parameters
-  platform: {
-    // Cloudflare Workers platform objects
-    ctx: Ctx;
-    env: Env;
-  };
-  request: Request; // Standard Request object
-  url: URL; // Parsed URL object
+// Matches any path
+app.get('/api/*', handler);
+```
+
+### Request Handler
+
+```typescript
+type RequestHandler<Options, Pathname> = (
+	event: RequestEvent<Options, Pathname>
+) => Response | Promise<Response> | void;
+
+interface RequestEvent<Options, Pathname> {
+	params: RouteParams<Pathname>; // Route parameters (type-safe)
+	platform: Platform<Options>; // Cloudflare Workers context
+	request: Request; // Original request
+	url: URL; // Parsed URL
 }
-```
-
-## Type Safety
-
-Define your environment types for full type safety:
-
-```typescript
-interface Env {
-  MY_SECRET: string;
-  DATABASE_URL: string;
-}
-
-const app = router<Env>();
-
-app.get("/secret", ({ platform }) => {
-  // platform.env.MY_SECRET is typed as string
-  return text(platform.env.MY_SECRET);
-});
 ```
 
 ## Advanced Usage
 
-### Base Path
+### Custom Types
 
 ```typescript
-const api = router({ base: "/api/v1" });
+interface MyEnv {
+	DATABASE_URL: string;
+	API_KEY: string;
+}
 
-// Routes will be prefixed with /api/v1
-api.get("/users", handler); // Matches /api/v1/users
+interface MyProps {
+	userId: string;
+}
+
+const app = router<{
+	env: MyEnv;
+	props: MyProps;
+}>();
+
+app.get('/protected', ({ platform }) => {
+	// platform.env is typed as MyEnv
+	// platform.ctx.props is typed as MyProps
+	const dbUrl = platform.env.DATABASE_URL;
+	return json({ success: true });
+});
 ```
 
-### Multiple Handlers
+### Error Handling
 
 ```typescript
-app.get("/protected", authMiddleware, validateMiddleware, mainHandler);
+import { internalServerError } from '@agilearn/router/response';
+
+const app = router({
+	onError: (error, request) => {
+		console.error('Router error:', error);
+		return internalServerError(error);
+	},
+});
 ```
 
-### HTTP Methods
+### Middleware Pattern
 
-All standard HTTP methods are supported:
+```typescript
+import { error } from '@agilearn/router/response';
 
-- `app.get(path, ...handlers)`
-- `app.post(path, ...handlers)`
-- `app.put(path, ...handlers)`
-- `app.delete(path, ...handlers)`
-- `app.patch(path, ...handlers)`
-- `app.options(path, ...handlers)`
-- `app.all(path, ...handlers)` - matches any method
+const authenticate = ({ request, platform }) => {
+	const token = request.headers.get('Authorization');
+	if (!token) {
+		throw error(401, 'Unauthorized');
+	}
+	// Continue to next handler by returning void/undefined
+};
 
-## API Reference
+const getUser = ({ params }) => {
+	return json({
+		data: {
+			type: 'users',
+			id: params.id,
+		},
+	});
+};
 
-### `router(options?)`
+// Chain handlers
+app.get('/users/:id', authenticate, getUser);
+```
 
-Creates a new router instance.
+### Error Handling Best Practices
 
-**Options:**
+```typescript
+import { badRequest, internalServerError, notFound } from '@agilearn/router';
 
-- `base?: string` - Base path for all routes
-- `onError?: (error: Error, request: Request) => Response | Promise<Response>` -
-  Global error handler
+app.get('/users/:id', async ({ params, platform }) => {
+	try {
+		const user = await getUser(params.id, platform.env.DATABASE_URL);
 
-### Response Helpers
+		if (!user) {
+			return notFound();
+		}
 
-- `text(body, options?)` - Creates a text response
-- `notFound(body?)` - Creates a 404 response
-- `internalServerError(body?)` - Creates a 500 response
+		return json({
+			data: {
+				type: 'users',
+				id: user.id,
+				attributes: user,
+			},
+		});
+	} catch (err) {
+		if (err instanceof ValidationError) {
+			return badRequest(err.message);
+		}
+
+		return internalServerError(err);
+	}
+});
+```
+
+## JSON:API Compliance
+
+This router is designed for JSON:API applications and includes:
+
+- Structured error responses following JSON:API error object format
+- Support for JSON:API document structure
+
+```typescript
+// JSON:API compliant response
+app.get('/users/:id', ({ params }) => {
+	return json(
+		{
+			data: {
+				type: 'users',
+				id: params.id,
+				attributes: {
+					name: 'John Doe',
+					email: 'john@example.com',
+				},
+			},
+		},
+		{
+			headers: { 'Content-Type': 'application/vnd.api+json' },
+		}
+	);
+});
+```
+
+## Deployment
+
+### Cloudflare Workers
+
+```typescript
+// wrangler.toml
+name = "my-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# src/index.ts
+import { json, router } from '@agilearn/router';
+
+const app = router();
+
+app.get('/', () => json({ message: 'Hello World!' }));
+
+export default app;
+```
+
+Then deploy:
+
+```bash
+npx wrangler deploy
+```
 
 ## License
 
-ISC
+MIT
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please read our contributing guidelines and submit pull requests to our repository.
