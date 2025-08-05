@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"description": "A lightweight router for Cloudflare Workers with TypeScript support",
 	"type": "module",
+	"private": false,
 	"module": "dist/index.mjs",
 	"types": "dist/index.d.ts",
 	"exports": {
@@ -12,9 +13,7 @@
 		}
 	},
 	"files": [
-		"dist",
-		"src",
-		"README.md"
+		"dist"
 	],
 	"scripts": {
 		"build": "pnpm run types && pnpm run build:esm && pnpm run build:types",
@@ -47,5 +46,13 @@
 		"valibot": "^1.1.0",
 		"vitest": "^3.2.4",
 		"wrangler": "^4.26.1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/accuser/router.git"
+	},
+	"homepage": "https://github.com/accuser/router#readme",
+	"bugs": {
+		"url": "https://github.com/accuser/router/issues"
 	}
 }
