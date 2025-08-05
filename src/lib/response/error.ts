@@ -1,11 +1,15 @@
-export const error = (status: number, statusText: string, reason?: unknown) =>
-	new Response(
-		JSON.stringify({
-			errors: [{ status: String(status), title: reason instanceof Error ? reason.message : reason }]
-		}),
+import { json } from './json';
+
+export const error = (status: number, statusText?: string, reason?: unknown) =>
+	json(
 		{
-			status: status,
-			statusText: statusText,
-			headers: { 'Content-Type': 'application/json' }
-		}
+			errors: [
+				{
+					status: String(status),
+					title: statusText,
+					description: reason instanceof Error ? reason.message : reason ? String(reason) : undefined,
+				},
+			],
+		},
+		{ status, statusText }
 	);
