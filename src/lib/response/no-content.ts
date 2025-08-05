@@ -1,7 +1,1 @@
-import { json } from '$lib/response';
-
-export const noContent = ({ ...init }: ResponseInit = {}) =>
-	json(undefined, {
-		...init,
-		status: 204
-	});
+export const noContent = (init?: ResponseInit) => new Response(null, { ...init, status: 204 });

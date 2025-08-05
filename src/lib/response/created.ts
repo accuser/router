@@ -1,7 +1,3 @@
 import { json } from '$lib/response';
 
-export const created = (data?: unknown, { ...init }: ResponseInit = {}) =>
-	json(data, {
-		...init,
-		status: 201
-	});
+export const created: typeof json = (data, init) => json(data, { ...init, status: 201 });
