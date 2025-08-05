@@ -17,14 +17,14 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "pnpm run build:esm && pnpm run build:types",
+		"build": "pnpm run types && pnpm run build:esm && pnpm run build:types",
 		"build:esm": "esbuild src/index.ts --bundle --format=esm --minify --outfile=dist/index.mjs --platform=neutral",
 		"build:types": "tsc --emitDeclarationOnly --outDir dist",
 		"clean": "rm -rf dist",
 		"dev": "pnpm run build --watch",
 		"prepublishOnly": "pnpm run clean && pnpm run build",
-		"test": "vitest run",
-		"test:watch": "vitest",
+		"test": "vitest",
+		"test:run": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"types": "wrangler types"
 	},
@@ -38,12 +38,13 @@
 	],
 	"author": "Matthew Gibbons",
 	"license": "ISC",
-	"packageManager": "pnpm@10.12.1",
+	"packageManager": "pnpm@10.14.0",
 	"devDependencies": {
 		"@types/node": "^24.1.0",
 		"@vitest/coverage-v8": "^3.2.4",
 		"esbuild": "^0.25.8",
 		"typescript": "^5.8.3",
+		"valibot": "^1.1.0",
 		"vitest": "^3.2.4",
 		"wrangler": "^4.26.1"
 	}
