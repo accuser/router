@@ -1,6 +1,6 @@
 {
 	"name": "@agilearn/router",
-	"version": "1.3.0",
+	"version": "1.3.1",
 	"description": "A lightweight router for Cloudflare Workers with TypeScript support",
 	"type": "module",
 	"private": false,
