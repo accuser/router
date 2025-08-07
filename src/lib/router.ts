@@ -50,6 +50,17 @@ export type RouterOptions = {
 	methods?: DefaultMethods;
 };
 
+export type RouterConfiguration<Options extends RouterOptions = {}> = {
+	base?: ValidPathname;
+	catch?: (error: unknown, req: Request, env: ExtractEnv<Options>, ctx: ExecutionContext) => MaybePromise<Response>;
+	finally?: (
+		req: Request,
+		res: Maybe<Response>,
+		env: ExtractEnv<Options>,
+		ctx: ExecutionContext
+	) => MaybePromise<Response>;
+};
+
 export type Router<Options extends RouterOptions> = Flatten<{
 	[K in ExtractMethods<Options>]: <Pathname extends ValidPathname>(
 		pathname: Pathname,
@@ -61,20 +72,8 @@ export type RequestHandler<Options extends RouterOptions, Pathname extends Valid
 	event: RequestEvent<Options, Pathname>
 ) => MaybePromise<Response>;
 
-export const router = <Options extends RouterOptions = {}>({
-	base,
-	catch: _catch = internalServerError,
-	finally: _finally = (request, response) => response,
-}: {
-	base?: ValidPathname;
-	catch?: (error: unknown, req: Request, env: ExtractEnv<Options>, ctx: ExecutionContext) => MaybePromise<Response>;
-	finally?: (
-		request: Request,
-		response: Maybe<Response>,
-		env: ExtractEnv<Options>,
-		ctx: ExecutionContext
-	) => MaybePromise<Response>;
-} = {}) => {
+export const router = <Options extends RouterOptions = {}>(config: RouterConfiguration<Options> = {}) => {
+	const { base, catch: _catch = internalServerError, finally: _finally = (_, res) => res } = config;
 	const routes: { handlers: RequestHandler<Options, ValidPathname>[]; re: RegExp }[] = [];
 
 	return new Proxy(
