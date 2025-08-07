@@ -63,10 +63,17 @@ export type RequestHandler<Options extends RouterOptions, Pathname extends Valid
 
 export const router = <Options extends RouterOptions = {}>({
 	base,
-	onError = internalServerError,
+	catch: _catch = internalServerError,
+	finally: _finally = (request, response) => response,
 }: {
 	base?: ValidPathname;
-	onError?: (error: unknown, request: Request) => Response | Promise<Response>;
+	catch?: (error: unknown, req: Request, env: ExtractEnv<Options>, ctx: ExecutionContext) => MaybePromise<Response>;
+	finally?: (
+		request: Request,
+		response: Maybe<Response>,
+		env: ExtractEnv<Options>,
+		ctx: ExecutionContext
+	) => MaybePromise<Response>;
 } = {}) => {
 	const routes: { handlers: RequestHandler<Options, ValidPathname>[]; re: RegExp }[] = [];
 
@@ -75,6 +82,7 @@ export const router = <Options extends RouterOptions = {}>({
 			fetch: (async (req, env, ctx) => {
 				const url = new URL(req.url);
 				const route = `${req.method} ${url.pathname}`;
+				let res: Maybe<Response>;
 
 				try {
 					for (const { handlers, re } of routes) {
@@ -82,7 +90,6 @@ export const router = <Options extends RouterOptions = {}>({
 
 						if (match) {
 							const params = (match.groups || {}) as RouteParams<ValidPathname>;
-							let res: Maybe<Response>;
 
 							for (const handler of handlers) {
 								if (
@@ -93,16 +100,24 @@ export const router = <Options extends RouterOptions = {}>({
 										url,
 									})) instanceof Response
 								)
-									return req.method === 'HEAD' && res.bodyUsed
-										? new Response(null, { headers: res.headers, status: res.status, statusText: res.statusText })
+									throw req.method === 'HEAD' && res.bodyUsed
+										? new Response(null, {
+												headers: res.headers,
+												status: res.status,
+												statusText: res.statusText,
+										  })
 										: res;
 							}
 						}
 					}
-					return notFound();
+					throw notFound();
 				} catch (e) {
-					return e instanceof Response ? e : onError(e, req);
+					res = e instanceof Response ? e : await _catch(e, req, env, ctx);
+				} finally {
+					res = await _finally(req, res, env, ctx);
 				}
+
+				return res instanceof Response ? res : internalServerError();
 			}) satisfies ExportedHandlerFetchHandler<ExtractEnv<Options>>,
 		},
 		{
