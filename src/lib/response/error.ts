@@ -1,6 +1,6 @@
 import { json } from './json';
 
-export const error = (status: number, statusText?: string, reason?: unknown) =>
+export const error = (status: number, statusText?: string, reason?: unknown, init?: ResponseInit) =>
 	json(
 		{
 			errors: [
@@ -11,5 +11,5 @@ export const error = (status: number, statusText?: string, reason?: unknown) =>
 				},
 			],
 		},
-		{ status, statusText }
+		{ ...init, status, statusText }
 	);
