@@ -1,3 +1,1 @@
-import { json } from '$lib/response';
-
-export const notModified: typeof json = (data, init) => json(data, { ...init, status: 304 });
+export const notModified = (init?: ResponseInit) => new Response(null, { ...init, status: 304 });
